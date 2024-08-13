@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Video</title>
+    <style>
+        #formats-list {
+            margin-top: 20px;
+        }
+        body{
+            font-family: Arial,sana-serif;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color:darkslateblue;
+        }
+        input{
+            display:flex;
+            text-align: center;
+            place-content: center;
+            place-items: center;
+            width:500px;
+            height: 20px;
+            background-color: dimgray;
+        }
+        label{
+            display: block;
+            font-style: italic;
+            padding: 10px 10px;
+        }
+        form{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 80px;
+            padding: 10px 20px;
+        }
+        button{
+            padding: 10px 20px;
+            border-radius: 4px;
+            border: none;
+            background-color: magenta;
+            color: white;
+            cursor:pointer;
+            font-style: italic;
+        }
+        button:hover{
+            background-color: darkmagenta;
+        }
+        h1{
+            color:rgb(134, 112, 144);
+            text-align: start;
+            font-style:italic;
+        }
+        label,input,button{
+            margin:0;
+        }
+        a{
+            padding: 10px 440px;
+            font-size:x-large;
+            color: rgb(134, 112, 144);
+            font-style: oblique;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to youtube video downloader</h1>
+    <a>Here, you can download videos without any ads</a>
+
+    <form id="fetch-form">
+        <label for="link">Video URL:</label>
+        <input type="text" id="link" name="link" required>
+        <button type="submit">Fetch Formats</button>
+    </form>
+
+    <div id="formats-list"></div>
+
+    <form id="download-form" style="display: none;">
+        <label for="format">Select Format Code:</label>
+        <select id="format" name="format" required>
+            <!-- Options will be populated here -->
+        </select>
+        <button type="submit">Download</button>
+    </form>
+
+    <script>
+        // Fetch video formats and display them
+        document.getElementById('fetch-form').addEventListener('submit', async (event) => {
+            event.preventDefault();  // Prevent form from submitting the default way
+
+            const formData = new FormData(event.target);
+            const link = formData.get('link');
+
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/formats?link=${encodeURIComponent(link)}`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    const formats = result.formats;
+                    const formatSelect = document.getElementById('format');
+                    formatSelect.innerHTML = '';  // Clear existing options
+
+                    formats.forEach(format => {
+                        const option = document.createElement('option');
+                        option.value = format.format_id;
+                        option.textContent = `${format.format_id}: ${format.format} (${format.resolution || 'N/A'}) - ${format.ext}`;
+                        formatSelect.appendChild(option);
+                    });
+
+                    document.getElementById('download-form').style.display = 'block';  // Show download form
+                } else {
+                    alert('Error: ' + result.detail);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred');
+            }
+        });
+
+        // Handle video download
+        document.getElementById('download-form').addEventListener('submit', async (event) => {
+            event.preventDefault();  // Prevent form from submitting the default way
+
+            const formData = new FormData(event.target);
+            const link = document.getElementById('link').value;
+            const formatCode = formData.get('format');
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/download', {
+                    method: 'POST',
+                    body: new URLSearchParams({ link, format_code: formatCode })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Provide the user with a link to download the file
+                    alert('Download started! You can access your file here: ' + result.file_path);
+                } else {
+                    alert('Error: ' + result.detail);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred');
+            }
+        });
+    </script>
+    <a>Note: High resolution may not play with audio</a>
+</body>
+</html>
